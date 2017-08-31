@@ -6,6 +6,9 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+import sys
+import time
+
 from PyQt5 import QtCore, QtWidgets
 from openpyxl import load_workbook
 
@@ -70,14 +73,16 @@ class Ui_Form(object):
 
         self.tableWidget = QtWidgets.QTableWidget(self.tab)
         self.tableWidget.setObjectName("tableWidget")
-        # self.tableWidget.setColumnCount(0)
-        # self.tableWidget.setRowCount(0)
+        self.tableWidget.setColumnCount(0)
+        self.tableWidget.setRowCount(0)
+
         self.horizontalLayout_2.addWidget(self.tableWidget)
         self.horizontalLayout_2.setStretch(0, 2)
         self.horizontalLayout_2.setStretch(1, 8)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab, "")
+
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.tab_2)
@@ -102,6 +107,7 @@ class Ui_Form(object):
         self.listWidget_2 = QtWidgets.QListWidget(self.tab_2)
         self.listWidget_2.setObjectName("listWidget_2")
         self.horizontalLayout_5.addWidget(self.listWidget_2)
+
         self.tableWidget_2 = QtWidgets.QTableWidget(self.tab_2)
         self.tableWidget_2.setObjectName("tableWidget_2")
         self.tableWidget_2.setColumnCount(0)
@@ -112,6 +118,7 @@ class Ui_Form(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.gridLayout_3.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, "")
+
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
         self.gridLayout_7 = QtWidgets.QGridLayout(self.tab_3)
@@ -140,6 +147,7 @@ class Ui_Form(object):
         self.tableWidget_3.setObjectName("tableWidget_3")
         self.tableWidget_3.setColumnCount(0)
         self.tableWidget_3.setRowCount(0)
+
         self.horizontalLayout_7.addWidget(self.tableWidget_3)
         self.horizontalLayout_7.setStretch(0, 2)
         self.horizontalLayout_7.setStretch(1, 8)
@@ -208,26 +216,52 @@ class Ui_Form(object):
         self.pushButton.clicked.connect(self.msg)
 
     def msg(self):
-        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(caption='打开', directory='e:\\',
+        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(caption='打开',
+                                                                   directory=r'E:\fight__doc\execelTool\excel\item',
                                                                    filter='Excel文件 (*.xlsx)')
         self.lineEdit.setText(filename)
         self.lineEdit.setEnabled(False)
 
-        wb = load_workbook(filename, True)
+        wb = load_workbook(filename)
         sheetlist = wb.get_sheet_names()
-        sheet = wb.get_sheet_by_name(sheetlist[0])
-        self.tableWidget_2.setColumnCount(sheet.max_column)
-        self.tableWidget_2.setRowCount(sheet.max_row)
-        self.tableWidget_2.item(1,1)
-        # for i in range(sheet.max_column):
-        #     for j in range(sheet.max_row):
-        #         item = self.tableWidget_2.item(j, i)
-        #         item.setText(QtCore.QCoreApplication.translate("Form", "333"))
+        self.sheet = wb.get_sheet_by_name(sheetlist[0])
+        self.tableWidget.setColumnCount(self.sheet.max_column)
+        self.tableWidget.setRowCount(self.sheet.max_row)
+        self.sheetdict = {}
+        start = time.clock()
+        for row in self.sheet.rows:
+            for cell in row:
+                self.sheetdict[(cell.row, cell.col_idx)] = str(cell.value)
+        print(self.sheetdict)
+        mid = time.clock()
+        self.work()
+        #
+        # 多线程
+        # threadinglist = []
+        # for i in range(1):
+        #     t = threading.Thread(target=self.work, name=i)
+        #     threadinglist.append(t)
+        # for t in threadinglist:
+        #     t.start()
+        # for t in threadinglist:
+        #     t.join()
+        end = time.clock()
+        print('所需时间：%s ; 所需时间：%s ' % ((start - mid), (mid - end)))
+
+    def work(self):
+        for i in range(self.sheet.max_row):
+            for j in range(self.sheet.max_column):
+                item = QtWidgets.QTableWidgetItem(self.sheetdict[(i + 1, j + 1)])
+                self.tableWidget.setItem(i, j, item)
+        print('222222222222222222222')
+
+        for i in range(self.sheet.max_row):
+            item = '%s--%s' % (self.sheetdict[(i + 1, 1)], self.sheetdict[(i + 1, 2)])
+            self.tableWidget.addItem(item)
+        print('--------------------')
 
 
 if __name__ == '__main__':
-    import sys
-
     app = QtWidgets.QApplication(sys.argv)  # 注册UI界面
     aaa = QtWidgets.QWidget()  # 实例化UI界面
     ui = Ui_Form()  # 实例化对象
