@@ -6,11 +6,14 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+import re
 import sys
 import time
 
 from PyQt5 import QtCore, QtWidgets
 from openpyxl import load_workbook
+
+CHECK_STRING = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ';')
 
 
 class Ui_Form(object):
@@ -215,6 +218,7 @@ class Ui_Form(object):
     def UiLogic(self):
         self.pushButton.clicked.connect(self.msg)
 
+
     def msg(self):
         filename, filetype = QtWidgets.QFileDialog.getOpenFileName(caption='打开',
                                                                    directory=r'E:\fight__doc\execelTool\excel\item',
@@ -225,7 +229,8 @@ class Ui_Form(object):
         wb = load_workbook(filename)
         sheetlist = wb.get_sheet_names()
         self.sheet = wb.get_sheet_by_name(sheetlist[0])
-        self.tableWidget.setColumnCount(self.sheet.max_column)
+        self.tableWidget.setColumnCount(6)
+        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度', '概率', '数量','装备相关'])
         self.tableWidget.setRowCount(self.sheet.max_row)
         self.sheetdict = {}
         start = time.clock()
@@ -245,20 +250,100 @@ class Ui_Form(object):
         #     t.start()
         # for t in threadinglist:
         #     t.join()
+        self.prize_logic()
         end = time.clock()
         print('所需时间：%s ; 所需时间：%s ' % ((start - mid), (mid - end)))
 
     def work(self):
-        for i in range(self.sheet.max_row):
-            for j in range(self.sheet.max_column):
-                item = QtWidgets.QTableWidgetItem(self.sheetdict[(i + 1, j + 1)])
-                self.tableWidget.setItem(i, j, item)
-        print('222222222222222222222')
+        # for i in range(self.sheet.max_row):
+        #     for j in range(self.sheet.max_column):
+        #         item = QtWidgets.QTableWidgetItem(self.sheetdict[(i + 1, j + 1)])
+        #         self.tableWidget.setItem(i, j, item)
+        # print('222222222222222222222')
 
+        self.listWidget.clear()
         for i in range(self.sheet.max_row):
             item = '%s--%s' % (self.sheetdict[(i + 1, 1)], self.sheetdict[(i + 1, 2)])
-            self.tableWidget.addItem(item)
-        print('--------------------')
+            self.listWidget.addItem(item)
+        # self.listWidget.itemClicked.connect()
+            # print('--------------------')
+
+    def prize_logic(self):
+        gamemoney, gameequip, gameitem, gamepanter, prizerow = {}, {}, {}, {}, {}
+        gamemoney_len, gameequip_len, gameitem_len, gamepanter_len, prizerow_len = {}, {}, {}, {}, {}
+        prizerowlist = []
+        prizesheet = self.sheetdict
+        error_list = []
+
+        for i in range(4, self.sheet.max_row + 1):
+            gamemoney[i] = [prizesheet[(i, j)].split(';') for j in range(4, 7)]
+            gameequip[i] = [prizesheet[(i, j)].split(';') for j in range(7, 11)]
+            gameitem[i] = [prizesheet[(i, j)].split(';') for j in range(11, 14)]
+            gamepanter[i] = [prizesheet[(i, j)].split(';') for j in range(14, 17)]
+            prizerow[i] = [gamemoney[i], gameequip[i], gameitem[i], gamepanter[i]]
+
+            gamemoney_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
+                                                                                               prizesheet[
+                                                                                                   (i, j)]).count(
+                'None') for
+                                j
+                                in range(4, 7)]
+            gameequip_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
+                                                                                               prizesheet[
+                                                                                                   (i, j)]).count(
+                'None') for j
+                                in range(7, 11)]
+            gameitem_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
+                                                                                              prizesheet[
+                                                                                                  (i, j)]).count(
+                'None') for j in
+                               range(11, 14)]
+            gamepanter_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
+                                                                                                prizesheet[
+                                                                                                    (i, j)]).count(
+                'None') for j
+                                 in range(14, 17)]
+
+            prizerow_len[i] = [gamemoney_len[i], gameequip_len[i], gameitem_len[i], gamepanter_len[i]]
+
+            for k in range(4):
+                # 数据检查，添加错误列表
+                if prizerow_len[i][k].count(prizerow_len[i][k][0]) != len(prizerow_len[i][k]):
+                    error_list.append((i, k))
+
+            # 转化概率
+            prizerowdict = {}
+            prizerowdict['quanzhong'] = list(map(eval,
+                                                 prizerow[i][0][2] + prizerow[i][1][3] + prizerow[i][2][2] +
+                                                 prizerow[i][3][
+                                                     2]))
+
+            prizerowdict['item'] = list(map(eval,
+                                            prizerow[i][0][0] + prizerow[i][1][0] + prizerow[i][2][0] + prizerow[i][3][
+                                                0]))
+            prizerowdict['number'] = list(map(eval,
+                                              prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
+                                              prizerow[i][3][1]))
+            prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
+            prizerowdict['id'] = i
+            print(prizerowdict)
+            print('-------------------------------')
+            for index, value in enumerate(prizerowdict['quanzhong']):
+                if value == None:
+                    prizerowdict['quanzhong'][index] = 0
+
+            for index_1, value_1 in enumerate(prizerowdict['quanzhong']):
+                if sum(prizerowdict['quanzhong']) == 0:
+                    prizerowdict['quanzhong'][index_1] = 0
+                else:
+                    prizerowdict['quanzhong'][index_1] = value_1 / sum(prizerowdict['quanzhong'])
+            prizerowlist.append(prizerowdict)
+
+        print(prizerow)
+        print(prizerow_len)
+        print(error_list)
+        # print(prizerowdict)
+        print(prizerowlist)
 
 
 if __name__ == '__main__':
