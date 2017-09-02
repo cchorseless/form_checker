@@ -20,7 +20,7 @@ class Ui_Form(object):
     def setupUi(self, Form):  # 处理 widget的函数
         Form.setObjectName("Form")  # 对象名称
         Form.resize(640, 480)  # 表格尺寸
-
+        self.Form = Form
         # 栅格布局
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
@@ -218,7 +218,6 @@ class Ui_Form(object):
     def UiLogic(self):
         self.pushButton.clicked.connect(self.msg)
 
-
     def msg(self):
         filename, filetype = QtWidgets.QFileDialog.getOpenFileName(caption='打开',
                                                                    directory=r'E:\fight__doc\execelTool\excel\item',
@@ -230,8 +229,8 @@ class Ui_Form(object):
         sheetlist = wb.get_sheet_names()
         self.sheet = wb.get_sheet_by_name(sheetlist[0])
         self.tableWidget.setColumnCount(6)
-        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度', '概率', '数量','装备相关'])
-        self.tableWidget.setRowCount(self.sheet.max_row)
+        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度', '概率', '数量', '装备相关'])
+        # self.tableWidget.setRowCount(self.sheet.max_row)
         self.sheetdict = {}
         start = time.clock()
         for row in self.sheet.rows:
@@ -255,23 +254,55 @@ class Ui_Form(object):
         print('所需时间：%s ; 所需时间：%s ' % ((start - mid), (mid - end)))
 
     def work(self):
-        # for i in range(self.sheet.max_row):
-        #     for j in range(self.sheet.max_column):
-        #         item = QtWidgets.QTableWidgetItem(self.sheetdict[(i + 1, j + 1)])
-        #         self.tableWidget.setItem(i, j, item)
-        # print('222222222222222222222')
 
-        self.listWidget.clear()
-        for i in range(self.sheet.max_row):
+        for i in range(3, self.sheet.max_row):
             item = '%s--%s' % (self.sheetdict[(i + 1, 1)], self.sheetdict[(i + 1, 2)])
             self.listWidget.addItem(item)
-        # self.listWidget.itemClicked.connect()
-            # print('--------------------')
+
+        self.listWidget.itemClicked.connect(self.aaaa)
+
+    def aaaa(self, obj):
+        listindex = self.listWidget.row(obj)
+        aaadict = self.prizerowlist[listindex]
+
+        # 奖励表
+        idlist = [x for x in aaadict['item'] if x != 0]
+        numberlist = [x for x in aaadict['number'] if x != 0]
+        quanzhonglist = [x for x in aaadict['quanzhong'] if x != 0]
+        equipranddictlist = [x for x in aaadict['equipranddict'] if x != 0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+
+        # print(idlist)
+        columnindex = len(idlist)
+        self.tableWidget.setRowCount(columnindex)
+        if columnindex != 0:
+            for i in range(columnindex):
+                # 物品ID,第一列
+                item_1 = QtWidgets.QTableWidgetItem(str(idlist[i]))
+                self.tableWidget.setItem(i, 0, item_1)
+                # 物品名称,第二列
+                # item_2 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
+                # self.tableWidget.setItem(i, 1, item_2)
+                # 物品稀有度,第三列
+                # item_3 = QtWidgets.QTableWidgetItem(str(aaalist[i]))
+                # self.tableWidget.setItem(i, 2, item_3)
+                # 物品概率,第四列
+                item_4 = QtWidgets.QTableWidgetItem(str(quanzhonglist[i]))
+                self.tableWidget.setItem(i, 3, item_4)
+                # 物品数量，第五列
+                item_5 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
+                self.tableWidget.setItem(i, 4, item_5)
+                # 装备相关，第六列
+                # item_6 = QtWidgets.QTableWidgetItem(str(equipranddictlist[i]))
+                # self.tableWidget.setItem(i, 5, item_6)
 
     def prize_logic(self):
+
         gamemoney, gameequip, gameitem, gamepanter, prizerow = {}, {}, {}, {}, {}
         gamemoney_len, gameequip_len, gameitem_len, gamepanter_len, prizerow_len = {}, {}, {}, {}, {}
-        prizerowlist = []
+        self.prizerowlist = []
         prizesheet = self.sheetdict
         error_list = []
 
@@ -325,25 +356,28 @@ class Ui_Form(object):
                                               prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
                                               prizerow[i][3][1]))
             prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
-            prizerowdict['id'] = i
-            print(prizerowdict)
-            print('-------------------------------')
-            for index, value in enumerate(prizerowdict['quanzhong']):
-                if value == None:
-                    prizerowdict['quanzhong'][index] = 0
+            prizerowdict['id'] = [i - 4]
+            list_linshi = list(prizerowdict.values())
 
+            for i in range(5):
+                for index, value in enumerate(list_linshi[i]):
+                    if value == None:
+                        list_linshi[i][index] = 0
+            print(prizerowdict['quanzhong'])
+            print(sum(prizerowdict['quanzhong']))
             for index_1, value_1 in enumerate(prizerowdict['quanzhong']):
                 if sum(prizerowdict['quanzhong']) == 0:
                     prizerowdict['quanzhong'][index_1] = 0
                 else:
                     prizerowdict['quanzhong'][index_1] = value_1 / sum(prizerowdict['quanzhong'])
-            prizerowlist.append(prizerowdict)
+            print(sum(prizerowdict['quanzhong']))
+            self.prizerowlist.append(prizerowdict)
 
         print(prizerow)
         print(prizerow_len)
         print(error_list)
         # print(prizerowdict)
-        print(prizerowlist)
+        print(self.prizerowlist)
 
 
 if __name__ == '__main__':
