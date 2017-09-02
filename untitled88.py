@@ -365,10 +365,10 @@ class Ui_Form(object):
                         list_linshi[i][index] = 0
             print(prizerowdict['quanzhong'])
             print(sum(prizerowdict['quanzhong']))
-
+            sumprizequanzhong=sum(prizerowdict['quanzhong'])
             for index_1, value_1 in enumerate(prizerowdict['quanzhong']):
                 if prizerowdict['quanzhong'][index_1] != 0:
-                    prizerowdict['quanzhong'][index_1] = value_1 / sum(prizerowdict['quanzhong'])
+                    prizerowdict['quanzhong'][index_1] = value_1 / sumprizequanzhong
 
             print(prizerowdict['quanzhong'])
             print(sum(prizerowdict['quanzhong']))
