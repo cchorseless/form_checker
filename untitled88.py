@@ -13,7 +13,6 @@ import time
 from PyQt5 import QtCore, QtWidgets
 from openpyxl import load_workbook
 
-CHECK_STRING = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ';')
 
 
 class Ui_Form(object):
@@ -220,7 +219,7 @@ class Ui_Form(object):
 
     def msg(self):
         filename, filetype = QtWidgets.QFileDialog.getOpenFileName(caption='打开',
-                                                                   directory=r'E:\fight__doc\execelTool\excel\item',
+                                                                   directory=r'c:\\',
                                                                    filter='Excel文件 (*.xlsx)')
         self.lineEdit.setText(filename)
         self.lineEdit.setEnabled(False)
