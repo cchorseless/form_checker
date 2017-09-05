@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtWidgets
-
+import time
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -175,10 +175,12 @@ class Ui_Form(object):
 
 if __name__ == '__main__':
     import sys
-
+    start=time.clock()
     app = QtWidgets.QApplication(sys.argv)
     qtobj = QtWidgets.QWidget()
     ui = Ui_Form()
     ui.setupUi(qtobj)
     qtobj.show()
+    end=time.clock()
+    print('time:%s'%(start-end))
     sys.exit(app.exec_())
