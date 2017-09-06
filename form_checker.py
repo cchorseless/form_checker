@@ -268,7 +268,7 @@ class Ui_Form(object):
         self.pushButton_3.clicked.connect(self._partnerhandle)
         self.pushButton_4.clicked.connect(self._missionhandle)
         self.pushButton_5.clicked.connect(self._geniushandle)
-        # self.listWidget.itemClicked.connect(self._prize_listitem_click)
+        self.listWidget.itemClicked.connect(self._prize_listitem_click)
 
     # 选取文件夹，匹配文件
     def _msg(self):
@@ -303,98 +303,115 @@ class Ui_Form(object):
         return _sheetconf
 
     def _prize_handle(self):
+
+        gamemoney, gameequip, gameitem, gamepanter, prizerow = {}, {}, {}, {}, {}
         self.listWidget.clear()
         sheetconf = self._xlshandle('prize.xlsx')
-        gamemoney, gameequip, gameitem, gamepanter, prizerow = {}, {}, {}, {}, {}
-        gamemoney_len, gameequip_len, gameitem_len, gamepanter_len, prizerow_len = {}, {}, {}, {}, {}
         prizesheet = sheetconf['sheetdict']
-
         prizerowlist = []
         error_list = []
 
-        if sheetconf != {}:
-            for i in range(4, sheetconf['sheetmaxrow'] + 1):
-                self.listWidget.addItem(sheetconf['sheetdict'][(i, 1)])
-
         for i in range(4, sheetconf['sheetmaxrow'] + 1):
             prizerowdict = {}  # 每次循环初始化这个字典容器
-            # 数据检查，添加错误列表——————————————————————————————————————
-            gamemoney_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
-                                                                                               prizesheet[
-                                                                                                   (i, j)]).count(
-                'None') for j in range(4, 7)]
-            gameequip_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
-                                                                                               prizesheet[
-                                                                                                   (i, j)]).count(
-                'None') for j in range(7, 11)]
-            gameitem_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
-                                                                                              prizesheet[(i, j)]).count(
-                'None') for j in range(11, 14)]
-            gamepanter_len[i] = [len(re.split('\;|\,|\:|\；|\ ', prizesheet[(i, j)])) - re.split('\;|\,|\:|\；|\ ',
-                                                                                                prizesheet[
-                                                                                                    (i, j)]).count(
-                'None') for j in range(14, 17)]
-            prizerow_len[i] = [gamemoney_len[i], gameequip_len[i], gameitem_len[i], gamepanter_len[i]]
+            errstate = False
+            # 数据检查，添加错误列表—————————————————————————————————
+            for j in range(4, 17):
+                if prizesheet[(i, j)] != 'None':
+                    for item in list(prizesheet[(i, j)]):
+                        tmp = re.findall('[^\d;]', item)
+                        if tmp:
+                            error_list.append((i, j))
+                            errstate = True
 
-            for k in range(4):
-                if prizerow_len[i][k].count(prizerow_len[i][k][0]) != len(prizerow_len[i][k]):
-                    error_list.append(i)
-
-            if i in error_list:
-                continue
-            print(error_list)
-            # #############################################################################################
-            """
-            # 转化概率----------------------------------------------------------------------------------------------
             gamemoney[i] = [prizesheet[(i, j)].split(';') for j in range(4, 7)]
             gameequip[i] = [prizesheet[(i, j)].split(';') for j in range(7, 11)]
             gameitem[i] = [prizesheet[(i, j)].split(';') for j in range(11, 14)]
             gamepanter[i] = [prizesheet[(i, j)].split(';') for j in range(14, 17)]
             prizerow[i] = [gamemoney[i], gameequip[i], gameitem[i], gamepanter[i]]
-            prizerowdict['quanzhong'] = list(map(eval,
-                                                 prizerow[i][0][2] + prizerow[i][1][3] + prizerow[i][2][2] +
-                                                 prizerow[i][3][2]))
-            prizerowdict['item'] = list(map(eval,
-                                            prizerow[i][0][0] + prizerow[i][1][0] + prizerow[i][2][0] + prizerow[i][3][
-                                                0]))
-            prizerowdict['number'] = list(map(eval,
-                                              prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
-                                              prizerow[i][3][1]))
-            prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
+            for itemdict in prizerow[i]:
+                item_len = []
+                for itemlist in itemdict:
+                    if itemlist == ['None']:
+                        item_len.append(0)
+                    else:
+                        item_len.append(len(itemlist))
+                if item_len.count(item_len[0]) != len(item_len):
+                    error_list.append((i, prizerow[i].index(itemdict)))
+                    errstate = True
+
+            try:
+                prizerowdict['quanzhong'] = list(map(eval,
+                                                     prizerow[i][0][2] + prizerow[i][1][3] + prizerow[i][2][2] +
+                                                     prizerow[i][3][2]))
+            except Exception:
+                error_list.append((i, 'quanzhong'))
+                errstate = True
+            try:
+                prizerowdict['item'] = list(map(eval,
+                                                prizerow[i][0][0] + prizerow[i][1][0] + prizerow[i][2][0] +
+                                                prizerow[i][3][
+                                                    0]))
+            except Exception:
+                error_list.append((i, 'item'))
+                errstate = True
+            try:
+                prizerowdict['number'] = list(map(eval,
+                                                  prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
+                                                  prizerow[i][3][1]))
+            except Exception:
+                error_list.append((i, 'number'))
+                errstate = True
+            try:
+                prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
+            except Exception:
+                error_list.append((i, 'equipranddict'))
+                errstate = True
+
+            if errstate == True:
+                prizerowdict = {'number': [0], 'equipranddict': [0], 'quanzhong': [0], 'item': [0]}
+
             prizerowdict['id'] = [i - 4]
+            # 转化概率----------------------------------------------------------------------------
             # 将prizerowdict中None替换为0
             for key in prizerowdict.keys():
                 for idx, value in enumerate(prizerowdict[key]):
                     if value is None:
                         prizerowdict[key][idx] = 0
-            ########################################
+                        ##############################################
             sumprizequanzhong = sum(prizerowdict['quanzhong'])
             for index, value in enumerate(prizerowdict['quanzhong']):
                 if prizerowdict['quanzhong'][index] != 0:
                     prizerowdict['quanzhong'][index] = value / sumprizequanzhong
             prizerowlist.append(prizerowdict)
-        # ############################转化概率结束##################
-        # 标识错误条目—————————————————————
+
+        # ############################转化概率结束########
+        # 标识错误条目—————————————————
+        if sheetconf != {}:
+            for i in range(4, sheetconf['sheetmaxrow'] + 1):
+                self.listWidget.addItem(sheetconf['sheetdict'][(i, 1)])
         brush = QtGui.QBrush(QtGui.QColor(255, 0, 0))
         brush.setStyle(QtCore.Qt.Dense1Pattern)
-        print(error_list)
+
         if error_list != []:
             for tmp in error_list:
-                self.listWidget.item(tmp[0] - 1).setBackground(brush)
+                self.listWidget.item(tmp[0] - 4).setBackground(brush)
         # -----------------------------------------------------
         self._prize_error_list = error_list
         self._prize_prizerowlist = prizerowlist
-        """
 
     def _prize_listitem_click(self, obj):
+
         listindex = self.listWidget.row(obj)
+        print(listindex)
         print(self._prize_error_list)
+
         for item in self._prize_error_list:
-            if listindex == item[0]:
-                pass
+            if listindex == item[0] - 4:
+                self.tableWidget.setRowCount(1)
+                erritem = QtWidgets.QTableWidgetItem('此条数据报错，请修改')
+                self.tableWidget.setItem(0, 0, erritem)
             else:
                 aaadict = self._prize_prizerowlist[listindex]
-                print(aaadict)
                 idlist = [x for x in aaadict['item'] if x != 0]
                 numberlist = [x for x in aaadict['number'] if x != 0]
                 quanzhonglist = [x for x in aaadict['quanzhong'] if x != 0]
