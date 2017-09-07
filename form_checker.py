@@ -254,7 +254,7 @@ class Ui_Form(object):
         self.checkBox.setText(_translate("Form", "筛选显示错误"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Form", "奖励表"))
         self.tableWidget.setColumnCount(6)
-        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度/装备等级', '概率', '数量', '装备相关'])
+        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度/装备等级', '概率', '数量', '装备随机属性'])
         self.label_3.setText(_translate("Form", "解析进度"))
         self.pushButton_3.setText(_translate("Form", "开始解析"))
         self.checkBox_2.setText(_translate("Form", "筛选显示错误"))
@@ -412,13 +412,13 @@ class Ui_Form(object):
                 errstate = True
             try:
                 prizerowdict['number'] = list(map(eval,
-                                                  prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
+                                                  prizerow[i][0][1] + prizerow[i][1][2] + prizerow[i][2][1] +
                                                   prizerow[i][3][1]))
             except Exception:
                 error_list.append((i, 'number', '数量填错'))
                 errstate = True
             try:
-                prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
+                prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][1]))
             except Exception:
                 error_list.append((i, 'equipranddict', '装备属性填错'))
                 errstate = True
@@ -502,9 +502,13 @@ class Ui_Form(object):
                 # 物品数量，第五列
                 item_5 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
                 self.tableWidget.setItem(i, 4, item_5)
-                # 装备相关，第六列
-                # item_6 = QtWidgets.QTableWidgetItem(str(equipranddictlist[i]))
-                # self.tableWidget.setItem(i, 5, item_6)
+                #装备相关，第六列
+                try:
+                    item_6 = QtWidgets.QTableWidgetItem(str(equipranddictlist[i]))
+                    self.tableWidget.setItem(i, 5, item_6)
+                except:
+                    item_6 = QtWidgets.QTableWidgetItem('')
+                    self.tableWidget.setItem(i, 5, item_6)
         # 打印奖励表错误列表中错误原因
         if self._prize_error_list != []:
             errlist = set([x[0] for x in self._prize_error_list])
