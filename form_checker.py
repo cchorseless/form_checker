@@ -15,11 +15,10 @@ from openpyxl import load_workbook
 
 class Ui_Form(object):
     def setupUi(self, Form):
-        # 低层表格对象
+        # 底层表格对象
         Form.setObjectName("Form")
         Form.resize(833, 520)
-        self.form = Form
-        #
+        self.form = Form  # 用于调用
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -71,6 +70,7 @@ class Ui_Form(object):
         self.horizontalLayout_2.addWidget(self.progressBar)
         self.pushButton_2 = QtWidgets.QPushButton(self.tab)
         self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_2.setEnabled(False)
         self.horizontalLayout_2.addWidget(self.pushButton_2)
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
         self.line_2 = QtWidgets.QFrame(self.tab)
@@ -115,6 +115,7 @@ class Ui_Form(object):
         self.horizontalLayout_4.addWidget(self.progressBar_2)
         self.pushButton_3 = QtWidgets.QPushButton(self.tab_2)
         self.pushButton_3.setObjectName("pushButton_3")
+        self.pushButton_3.setEnabled(False)
         self.horizontalLayout_4.addWidget(self.pushButton_3)
         self.verticalLayout_4.addLayout(self.horizontalLayout_4)
         self.line_3 = QtWidgets.QFrame(self.tab_2)
@@ -159,6 +160,7 @@ class Ui_Form(object):
         self.horizontalLayout_6.addWidget(self.progressBar_3)
         self.pushButton_4 = QtWidgets.QPushButton(self.tab_3)
         self.pushButton_4.setObjectName("pushButton_4")
+        self.pushButton_4.setEnabled(False)
         self.horizontalLayout_6.addWidget(self.pushButton_4)
         self.verticalLayout_6.addLayout(self.horizontalLayout_6)
         self.line_4 = QtWidgets.QFrame(self.tab_3)
@@ -203,6 +205,7 @@ class Ui_Form(object):
         self.gridLayout_6.addWidget(self.progressBar_4, 0, 1, 1, 1)
         self.pushButton_5 = QtWidgets.QPushButton(self.tab_4)
         self.pushButton_5.setObjectName("pushButton_5")
+        self.pushButton_5.setEnabled(False)
         self.gridLayout_6.addWidget(self.pushButton_5, 0, 2, 1, 1)
         self.gridLayout_5.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.line_5 = QtWidgets.QFrame(self.tab_4)
@@ -232,6 +235,10 @@ class Ui_Form(object):
         self.verticalLayout.addWidget(self.tabWidget)
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
+        self.brush_error = QtGui.QBrush(QtGui.QColor(255, 0, 0))
+        self.brush_error.setStyle(QtCore.Qt.Dense1Pattern)
+        self.brush_warning = QtGui.QBrush(QtGui.QColor(255, 255, 0))
+        self.brush_warning.setStyle(QtCore.Qt.Dense1Pattern)
         self.retranslateUi(Form)
         self._uiconnect()
         self.tabWidget.setCurrentIndex(0)
@@ -247,7 +254,7 @@ class Ui_Form(object):
         self.checkBox.setText(_translate("Form", "筛选显示错误"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Form", "奖励表"))
         self.tableWidget.setColumnCount(6)
-        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度', '概率', '数量', '装备相关'])
+        self.tableWidget.setHorizontalHeaderLabels(['ID', '名称', '稀有度/装备等级', '概率', '数量', '装备相关'])
         self.label_3.setText(_translate("Form", "解析进度"))
         self.pushButton_3.setText(_translate("Form", "开始解析"))
         self.checkBox_2.setText(_translate("Form", "筛选显示错误"))
@@ -272,20 +279,36 @@ class Ui_Form(object):
 
     # 选取文件夹，匹配文件
     def _msg(self):
+        self.pushButton_2.setEnabled(False)
+        self.pushButton_3.setEnabled(False)
+        self.pushButton_4.setEnabled(False)
+        self.pushButton_5.setEnabled(False)
         self.filespathdict = {}
         self.lineEdit.clear()
+        needfileset = set(('item.xlsx', 'prize.xlsx', 'mission.xlsx', 'partner.xlsx', 'money.xlsx',
+                           'genius.xlsx', 'equip.xlsx', 'equip_random_attr.xlsx'))
         exceldirpath = QtWidgets.QFileDialog.getExistingDirectory(self.form, caption='请选择EXCEL文件夹', directory='e:\\')
         self.lineEdit.setText(exceldirpath)
+
         if exceldirpath == '':
             # 弹出警告框
-            errorbox = QtWidgets.QMessageBox.information(self.form, '提示', '未选择任何文件')
+            errorbox_1 = QtWidgets.QMessageBox.information(self.form, '提示', '未选择任何文件')
             return
         else:
             for root, dirs, files in os.walk(exceldirpath):
                 for f in files:
-                    if f in ['item.xlsx', 'prize.xlsx', 'mission.xlsx', 'partner.xlsx', 'money.xlsx',
-                             'genius.xlsx', 'equip.xlsx', 'equip_random_attr.xlsx']:
+                    if f in needfileset:
                         self.filespathdict[f] = os.path.join(root, f)
+            tmp = needfileset - set(self.filespathdict.keys())
+            if tmp == set():
+                self.pushButton_2.setEnabled(True)
+                self.pushButton_3.setEnabled(True)
+                self.pushButton_4.setEnabled(True)
+                self.pushButton_5.setEnabled(True)
+            else:
+                # 弹出警告框
+                errorbox_2 = QtWidgets.QMessageBox.information(self.form, '提示', '%s文件缺失' % str(tmp))
+                return
 
     # 读取表格内容
     def _xlshandle(self, filename):
@@ -303,16 +326,47 @@ class Ui_Form(object):
         return _sheetconf
 
     def _prize_handle(self):
+        # 预加载所需表数据————————————————————————————
+        sheet_money = self._xlshandle('money.xlsx')
+        sheet_equip = self._xlshandle('equip.xlsx')
+        sheet_partner = self._xlshandle('partner.xlsx')
+        sheet_item = self._xlshandle('item.xlsx')
+        sheet_all = [sheet_money, sheet_partner, sheet_item]
+        sheet_alldict = {'0': (0, 0)}
 
+        for item in sheet_all:
+            for j in range(1, item['sheetmaxcolumn'] + 1):
+                if item['sheetdict'][(2, j)] == 'id':
+                    id_idx = j
+                if item['sheetdict'][(2, j)] == 'item_name':
+                    item_name_idx = j
+                if item['sheetdict'][(2, j)] == 'quality':
+                    quality_idx = j
+            for i in range(4, item['sheetmaxrow'] + 1):
+                sheet_alldict[item['sheetdict'][(i, id_idx)]] = [item['sheetdict'][(i, item_name_idx)],
+                                                                 item['sheetdict'][(i, quality_idx)]]
+        for j in range(1, sheet_equip['sheetmaxcolumn'] + 1):
+            if sheet_equip['sheetdict'][(2, j)] == 'id':
+                id_idx = j
+            if sheet_equip['sheetdict'][(2, j)] == 'item_name':
+                item_name_idx = j
+            if sheet_equip['sheetdict'][(2, j)] == 'level_limit':
+                quality_idx = j
+        for i in range(4, sheet_equip['sheetmaxrow'] + 1):
+            sheet_alldict[sheet_equip['sheetdict'][(i, id_idx)]] = [sheet_equip['sheetdict'][(i, item_name_idx)],
+                                                                    sheet_equip['sheetdict'][(i, quality_idx)]]
+        self.sheet_alldict = sheet_alldict  # 加载4类基础表用于其他表格调用
+        # ——————————————————————————————————————————————————
         gamemoney, gameequip, gameitem, gamepanter, prizerow = {}, {}, {}, {}, {}
         self.listWidget.clear()
         sheetconf = self._xlshandle('prize.xlsx')
         prizesheet = sheetconf['sheetdict']
         prizerowlist = []
         error_list = []
-
+        warning_list = []
         for i in range(4, sheetconf['sheetmaxrow'] + 1):
-            prizerowdict = {}  # 每次循环初始化这个字典容器
+            # 每次循环初始化这个字典容器
+            prizerowdict = {}
             errstate = False
             # 数据检查，添加错误列表—————————————————————————————————
             for j in range(4, 17):
@@ -320,15 +374,17 @@ class Ui_Form(object):
                     for item in list(prizesheet[(i, j)]):
                         tmp = re.findall('[^\d;]', item)
                         if tmp:
-                            error_list.append((i, j))
+                            error_list.append((i, j, '该行存在非法字符'))
                             errstate = True
-
+                            break
             gamemoney[i] = [prizesheet[(i, j)].split(';') for j in range(4, 7)]
             gameequip[i] = [prizesheet[(i, j)].split(';') for j in range(7, 11)]
             gameitem[i] = [prizesheet[(i, j)].split(';') for j in range(11, 14)]
             gamepanter[i] = [prizesheet[(i, j)].split(';') for j in range(14, 17)]
             prizerow[i] = [gamemoney[i], gameequip[i], gameitem[i], gamepanter[i]]
+
             for itemdict in prizerow[i]:
+                error_note = {0: '货币相关填错', 1: '装备相关填错', 2: '道具相关填错', 3: '伙伴相关填错'}
                 item_len = []
                 for itemlist in itemdict:
                     if itemlist == ['None']:
@@ -336,7 +392,7 @@ class Ui_Form(object):
                     else:
                         item_len.append(len(itemlist))
                 if item_len.count(item_len[0]) != len(item_len):
-                    error_list.append((i, prizerow[i].index(itemdict)))
+                    error_list.append((i, prizerow[i].index(itemdict), error_note[prizerow[i].index(itemdict)]))
                     errstate = True
 
             try:
@@ -344,7 +400,7 @@ class Ui_Form(object):
                                                      prizerow[i][0][2] + prizerow[i][1][3] + prizerow[i][2][2] +
                                                      prizerow[i][3][2]))
             except Exception:
-                error_list.append((i, 'quanzhong'))
+                error_list.append((i, 'quanzhong', '权重填错'))
                 errstate = True
             try:
                 prizerowdict['item'] = list(map(eval,
@@ -352,95 +408,118 @@ class Ui_Form(object):
                                                 prizerow[i][3][
                                                     0]))
             except Exception:
-                error_list.append((i, 'item'))
+                error_list.append((i, 'item', 'ID填错'))
                 errstate = True
             try:
                 prizerowdict['number'] = list(map(eval,
                                                   prizerow[i][0][1] + prizerow[i][1][1] + prizerow[i][2][1] +
                                                   prizerow[i][3][1]))
             except Exception:
-                error_list.append((i, 'number'))
+                error_list.append((i, 'number', '数量填错'))
                 errstate = True
             try:
                 prizerowdict['equipranddict'] = list(map(eval, prizerow[i][1][2]))
             except Exception:
-                error_list.append((i, 'equipranddict'))
+                error_list.append((i, 'equipranddict', '装备属性填错'))
                 errstate = True
 
             if errstate == True:
                 prizerowdict = {'number': [0], 'equipranddict': [0], 'quanzhong': [0], 'item': [0]}
 
             prizerowdict['id'] = [i - 4]
-            # 转化概率----------------------------------------------------------------------------
-            # 将prizerowdict中None替换为0
+
+            # 将prizerowdict中None替换为0————
             for key in prizerowdict.keys():
                 for idx, value in enumerate(prizerowdict[key]):
                     if value is None:
                         prizerowdict[key][idx] = 0
-                        ##############################################
+            # ———————————————————
+            # 标注信息不全的道具ID——————————
+            prizerowdict['name']=[]
+            prizerowdict['quality']=[]
+            for itemid in prizerowdict['item']:
+                try:
+                    prizerowdict['name'].append(self.sheet_alldict[str(itemid)][0])
+                except:
+                    prizerowdict['name'].append('名称未配置')
+                    warning_list.append((i,))
+                try:
+                    prizerowdict['quality'].append(self.sheet_alldict[str(itemid)][1])
+                except:
+                    prizerowdict['quality'].append('属性未配置')
+                    warning_list.append((i,))
+            #——————————————————————
+            # 转化概率#############################################################
             sumprizequanzhong = sum(prizerowdict['quanzhong'])
             for index, value in enumerate(prizerowdict['quanzhong']):
                 if prizerowdict['quanzhong'][index] != 0:
                     prizerowdict['quanzhong'][index] = value / sumprizequanzhong
             prizerowlist.append(prizerowdict)
-
         # ############################转化概率结束########
-        # 标识错误条目—————————————————
+        # 标识错误和警告条目—————————————————
         if sheetconf != {}:
             for i in range(4, sheetconf['sheetmaxrow'] + 1):
                 self.listWidget.addItem(sheetconf['sheetdict'][(i, 1)])
-        brush = QtGui.QBrush(QtGui.QColor(255, 0, 0))
-        brush.setStyle(QtCore.Qt.Dense1Pattern)
-
         if error_list != []:
             for tmp in error_list:
-                self.listWidget.item(tmp[0] - 4).setBackground(brush)
+                self.listWidget.item(tmp[0] - 4).setBackground(self.brush_error)
+        if warning_list != []:
+            for tmp in warning_list:
+                self.listWidget.item(tmp[0] - 4).setBackground(self.brush_warning)
         # -----------------------------------------------------
-        self._prize_error_list = error_list
-        self._prize_prizerowlist = prizerowlist
+        self._prize_error_list = error_list     #输出奖励表填写错误条目列表
+        self._prize_prizerowlist = prizerowlist #输出奖励表分析后列表
+
 
     def _prize_listitem_click(self, obj):
-
         listindex = self.listWidget.row(obj)
-        print(listindex)
-        print(self._prize_error_list)
-
-        for item in self._prize_error_list:
-            if listindex == item[0] - 4:
-                self.tableWidget.setRowCount(1)
-                erritem = QtWidgets.QTableWidgetItem('此条数据报错，请修改')
-                self.tableWidget.setItem(0, 0, erritem)
-            else:
-                aaadict = self._prize_prizerowlist[listindex]
-                idlist = [x for x in aaadict['item'] if x != 0]
-                numberlist = [x for x in aaadict['number'] if x != 0]
-                quanzhonglist = [x for x in aaadict['quanzhong'] if x != 0]
-                equipranddictlist = [x for x in aaadict['equipranddict'] if x != 0]
-                # itemlist=[x for x in aaadict['item'] if x !=0]
-                # itemlist=[x for x in aaadict['item'] if x !=0]
-                # itemlist=[x for x in aaadict['item'] if x !=0]
-                columnindex = len(idlist)
-                self.tableWidget.setRowCount(columnindex)
-                if columnindex != 0:
-                    for i in range(columnindex):
-                        # 物品ID,第一列
-                        item_1 = QtWidgets.QTableWidgetItem(str(idlist[i]))
-                        self.tableWidget.setItem(i, 0, item_1)
-                        # 物品名称,第二列
-                        # item_2 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
-                        # self.tableWidget.setItem(i, 1, item_2)
-                        # 物品稀有度,第三列
-                        # item_3 = QtWidgets.QTableWidgetItem(str(aaalist[i]))
-                        # self.tableWidget.setItem(i, 2, item_3)
-                        # 物品概率,第四列
-                        item_4 = QtWidgets.QTableWidgetItem(str(quanzhonglist[i]))
-                        self.tableWidget.setItem(i, 3, item_4)
-                        # 物品数量，第五列
-                        item_5 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
-                        self.tableWidget.setItem(i, 4, item_5)
-                        # 装备相关，第六列
-                        # item_6 = QtWidgets.QTableWidgetItem(str(equipranddictlist[i]))
-                        # self.tableWidget.setItem(i, 5, item_6)
+        aaadict = self._prize_prizerowlist[listindex]
+        idlist = [x for x in aaadict['item'] if x != 0]
+        namelist = [x for x in aaadict['name'] if x != 0]
+        qualitylist = [x for x in aaadict['quality'] if x != 0]
+        numberlist = [x for x in aaadict['number'] if x != 0]
+        quanzhonglist = [x for x in aaadict['quanzhong'] if x != 0]
+        equipranddictlist = [x for x in aaadict['equipranddict'] if x != 0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+        # itemlist=[x for x in aaadict['item'] if x !=0]
+        columnindex = len(idlist)
+        self.tableWidget.setRowCount(columnindex)
+        if columnindex != 0:
+            for i in range(columnindex):
+                # 物品ID,第一列
+                item_1 = QtWidgets.QTableWidgetItem(str(idlist[i]))
+                self.tableWidget.setItem(i, 0, item_1)
+                # 物品名称,第二列
+                item_2 = QtWidgets.QTableWidgetItem(str(namelist[i]))
+                self.tableWidget.setItem(i, 1, item_2)
+                # 物品稀有度,第三列
+                item_3 = QtWidgets.QTableWidgetItem(str(qualitylist[i]))
+                self.tableWidget.setItem(i, 2, item_3)
+                # 物品概率,第四列
+                item_4 = QtWidgets.QTableWidgetItem(str(quanzhonglist[i]))
+                self.tableWidget.setItem(i, 3, item_4)
+                # 物品数量，第五列
+                item_5 = QtWidgets.QTableWidgetItem(str(numberlist[i]))
+                self.tableWidget.setItem(i, 4, item_5)
+                # 装备相关，第六列
+                # item_6 = QtWidgets.QTableWidgetItem(str(equipranddictlist[i]))
+                # self.tableWidget.setItem(i, 5, item_6)
+        # 打印奖励表错误列表中错误原因
+        if self._prize_error_list != []:
+            errlist = set([x[0] for x in self._prize_error_list])
+            errdict = {}
+            for x in errlist:
+                errdict[x] = []
+                for item in self._prize_error_list:
+                    if x == item[0]:
+                        errdict[x].append(item[2])
+            for x in errdict.keys():
+                if listindex == x - 4:
+                    self.tableWidget.setRowCount(len(errdict[x]))
+                    for i in range(len(errdict[x])):
+                        item = QtWidgets.QTableWidgetItem(errdict[x][i])
+                        self.tableWidget.setItem(i, 0, item)
 
     def _partnerhandle(self):
         pass
